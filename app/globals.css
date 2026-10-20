@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Visual direction: drafting sheets. Pages sit on a dot-grid "paper", figures are set in a
+ * dot-matrix face, and progress is shown as dot meters. Cobalt ink is the single accent;
+ * amber "signal" is reserved for highlights that need attention.
+ */
+@layer base {
+  :root {
+    --background: 220 20% 97%; /* paper */
+    --foreground: 218 47% 10%; /* ink */
+    --card: 0 0% 100%;
+    --card-foreground: 218 47% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 218 47% 10%;
+    --primary: 224 71% 46%; /* cobalt */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 18% 93%;
+    --secondary-foreground: 218 47% 10%;
+    --muted: 220 18% 94%;
+    --muted-foreground: 218 14% 38%;
+    --accent: 224 60% 95%;
+    --accent-foreground: 224 71% 30%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 16% 87%;
+    --input: 220 16% 82%;
+    --ring: 224 71% 46%;
+    --signal: 38 92% 50%;
+    --signal-foreground: 26 83% 14%;
+    --dot: 220 14% 76%;
+    --ink-panel: 222 47% 11%; /* always-dark showcase panels */
+    --radius: 0.75rem;
+
+    /* Chart roles (validated categorical slots 1–2 + recessive chrome) */
+    --chart-1: #2a78d6;
+    --chart-2: #eb6834;
+    --chart-grid: #c9ccd3;
+    --chart-axis: #7a7f88;
+  }
+
+  .dark {
+    --background: 222 35% 7%;
+    --foreground: 216 30% 96%;
+    --card: 222 30% 10%;
+    --card-foreground: 216 30% 96%;
+    --popover: 222 30% 11%;
+    --popover-foreground: 216 30% 96%;
+    --primary: 222 90% 68%;
+    --primary-foreground: 222 47% 8%;
+    --secondary: 222 22% 15%;
+    --secondary-foreground: 216 30% 96%;
+    --muted: 222 22% 14%;
+    --muted-foreground: 218 16% 68%;
+    --accent: 222 40% 17%;
+    --accent-foreground: 222 90% 80%;
+    --destructive: 0 70% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 20% 18%;
+    --input: 222 20% 24%;
+    --ring: 222 90% 68%;
+    --signal: 40 95% 58%;
+    --signal-foreground: 26 83% 10%;
+    --dot: 222 18% 22%;
+    --ink-panel: 222 40% 11%;
+
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-grid: #3a3d44;
+    --chart-axis: #898781;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Dot-grid paper. Fades toward the bottom so content, not texture, holds the eye. */
+  .bg-dots {
+    background-image: radial-gradient(hsl(var(--dot)) 1px, transparent 1.4px);
+    background-size: 18px 18px;
+  }
+  .bg-dots-fade {
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 40%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 40%, transparent 100%);
+  }
+  .bg-dots-fine {
+    background-image: radial-gradient(currentColor 0.9px, transparent 1.2px);
+    background-size: 8px 8px;
+  }
+  /* A horizontal rule made of round dots (border-dotted renders squares in some browsers). */
+  .dot-rule {
+    height: 2px;
+    background-image: radial-gradient(circle, hsl(var(--dot)) 1px, transparent 1.3px);
+    background-size: 7px 2px;
+    background-repeat: repeat-x;
+  }
+  .eyebrow {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

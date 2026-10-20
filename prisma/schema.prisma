@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth.js models (shape required by @auth/prisma-adapter) ----------
+
+model User {
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String    @unique
+  emailVerified      DateTime?
+  image              String?
+  passwordHash       String?
+  bio                String?   @db.VarChar(280)
+  emailNotifications Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  accounts   Account[]
+  sessions   Session[]
+  projects   Project[]
+  jobProfile JobProfile?
+  jobs       Job[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Only the SHA-256 hash of the reset token is stored; the raw token lives in the emailed link.
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  tokenHash String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+// ---------- Domain ----------
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String        @db.VarChar(100)
+  description String?       @db.VarChar(500)
+  status      ProjectStatus @default(PLANNING)
+  priority    Priority      @default(MEDIUM)
+  budget      Int           @default(0) // whole currency units
+  progress    Int           @default(0) // 0–100
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+// ---------- Job search ----------
+
+/// What the user is looking for, plus the resume text Claude drafts from.
+model JobProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  headline         String   @default("") @db.VarChar(160)
+  resumeText       String   @default("") @db.Text
+  skills           String[]
+  /// Role keywords; a posting must match at least one to count as relevant.
+  roleKeywords     String[]
+  /// Adzuna country codes (gb, us, in, de, ...).
+  countries        String[]
+  greenhouseBoards String[]
+  leverBoards      String[]
+  ashbyBoards      String[]
+  minSalaryUsd     Int?
+  wantsRelocation  Boolean  @default(true)
+  entryLevelOnly   Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum JobSource {
+  GREENHOUSE
+  LEVER
+  ASHBY
+  ADZUNA
+  REMOTIVE
+  ARBEITNOW
+  HIMALAYAS
+  JOBICY
+  MANUAL
+}
+
+enum JobStatus {
+  NEW
+  SHORTLISTED
+  PREPARED
+  SUBMITTED
+  INTERVIEW
+  OFFER
+  REJECTED
+  SKIPPED
+}
+
+model Job {
+  id           String    @id @default(cuid())
+  userId       String
+  source       JobSource
+  externalId   String
+  company      String    @db.VarChar(160)
+  title        String    @db.VarChar(240)
+  location     String    @default("") @db.VarChar(240)
+  remote       Boolean   @default(false)
+  url          String    @db.VarChar(1000)
+  description  String    @default("") @db.Text
+  salaryText   String?   @db.VarChar(160)
+  salaryMinUsd Int?
+  postedAt     DateTime
+  score        Int       @default(0)
+  /// Short reasons behind the score, shown to the user.
+  signals      String[]
+  status       JobStatus @default(NEW)
+  submittedAt  DateTime?
+  notes        String    @default("") @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packet ApplicationPacket?
+
+  @@unique([userId, source, externalId])
+  @@index([userId, status, score])
+  @@index([userId, postedAt])
+}
+
+/// Everything the user needs open while filling in the employer's form.
+model ApplicationPacket {
+  id          String    @id @default(cuid())
+  jobId       String    @unique
+  /// Claude's resume-aware fit assessment (0–100) and reasoning.
+  fitScore    Int?
+  fitSummary  String    @default("") @db.Text
+  strengths   String[]
+  gaps        String[]
+  summary     String    @default("") @db.Text
+  coverLetter String    @default("") @db.Text
+  /// [{ question, answer }]
+  answers     Json      @default("[]")
+  /// Points the user must verify themselves (gaps, assumptions Claude made).
+  checks      String[]
+  /// { [checklistKey]: boolean }
+  checklist   Json      @default("{}")
+  model       String?
+  generatedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
