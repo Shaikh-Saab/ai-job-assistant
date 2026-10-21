@@ -1,0 +1,42 @@
+# One-click deploy to Render's free plan (no credit card):
+# https://render.com/deploy?repo=https://github.com/Shaikh-Saab/ai-job-assistant
+# Render asks for the values marked `sync: false` during setup.
+services:
+  - type: web
+    name: ai-job-assistant
+    runtime: node
+    plan: free
+    region: singapore # same region as the Supabase database
+    buildCommand: npm ci && npx prisma migrate deploy && npm run build
+    startCommand: npm start
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      # The free instance has 512 MB of memory; keep the Next.js build inside it.
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=460"
+      - key: LOW_MEMORY_BUILD
+        value: "1"
+      - key: AUTH_TRUST_HOST
+        value: "true"
+      - key: AUTH_SECRET
+        generateValue: true
+      # Pooled connection (Supabase transaction pooler, port 6543, ?pgbouncer=true&connection_limit=1)
+      - key: DATABASE_URL
+        sync: false
+      # Direct/session connection for migrations (Supabase session pooler, port 5432)
+      - key: DIRECT_URL
+        sync: false
+      # Only these emails may use Claude (comma-separated)
+      - key: AI_OWNER_EMAILS
+        sync: false
+      # Optional
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ADZUNA_APP_ID
+        sync: false
+      - key: ADZUNA_APP_KEY
+        sync: false

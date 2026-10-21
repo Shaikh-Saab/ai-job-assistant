@@ -1,7 +1,8 @@
 import "server-only";
 
 export const appUrl = () =>
-  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.RENDER_EXTERNAL_URL || // set automatically on Render
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 /** Sends via Resend's REST API when configured; otherwise logs (useful in development). */
