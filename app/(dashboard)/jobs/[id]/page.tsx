@@ -13,7 +13,7 @@ import { aiAllowedFor } from "@/lib/jobs/ai";
 import { JOB_SOURCE_LABELS } from "@/lib/validations";
 
 // Claude drafting can take about a minute.
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const session = await auth();

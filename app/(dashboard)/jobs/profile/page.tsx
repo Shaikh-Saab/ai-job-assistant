@@ -9,7 +9,7 @@ import { getOrCreateJobProfile } from "@/lib/data/jobs";
 import { aiAllowedFor } from "@/lib/jobs/ai";
 
 // Job search fans out to ~50 APIs and Claude drafting can take ~a minute.
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 export const metadata: Metadata = { title: "Job profile" };
 

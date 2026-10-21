@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { JOB_SOURCE_LABELS, JOB_STATUS_LABELS, jobQuerySchema, type JobStatusValue } from "@/lib/validations";
 
 // Job search fans out to ~50 APIs and Claude drafting can take ~a minute.
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 export const metadata: Metadata = { title: "Job search" };
 

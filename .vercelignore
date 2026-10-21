@@ -1,0 +1,2 @@
+# Render-only config; keep it out of Vercel deployments.
+render.yaml

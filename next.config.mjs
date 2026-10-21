@@ -8,6 +8,11 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: lowMemoryBuild },
   // react-pdf ships its own font/layout engines; load it from node_modules instead of bundling.
   serverExternalPackages: ["@react-pdf/renderer"],
+  // pdfkit loads its built-in fonts (Helvetica, Courier…) dynamically, so file tracing misses
+  // them. Ship them with the PDF route explicitly or serverless deploys fail with MODULE_NOT_FOUND.
+  outputFileTracingIncludes: {
+    "/api/reports/projects": ["./node_modules/pdfkit/js/standard-fonts/**", "./node_modules/@react-pdf/pdfkit/**"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
