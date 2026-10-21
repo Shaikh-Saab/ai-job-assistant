@@ -4,10 +4,10 @@ import { createHash } from "crypto";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 
-import { currentUserId } from "@/auth";
+import { currentUser, currentUserId } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateJobProfile } from "@/lib/data/jobs";
-import { AIError, AI_MODEL, aiConfigured, draftApplication, parseResume } from "@/lib/jobs/ai";
+import { AIError, AI_MODEL, AI_UNAVAILABLE, aiAllowedFor, draftApplication, parseResume } from "@/lib/jobs/ai";
 import { scoreJob } from "@/lib/jobs/score";
 import { runSearch } from "@/lib/jobs/sync";
 import type { SearchSummary } from "@/lib/jobs/types";
@@ -49,9 +49,9 @@ export async function saveJobProfile(input: unknown): Promise<ActionResult> {
 export async function suggestProfileFromResume(
   resumeText: string,
 ): Promise<ActionResult<{ headline: string; skills: string[]; roleKeywords: string[] }>> {
-  const userId = await currentUserId();
-  if (!userId) return UNAUTHORIZED;
-  if (!aiConfigured()) return { ok: false, error: "Add ANTHROPIC_API_KEY to .env to use Claude." };
+  const user = await currentUser();
+  if (!user) return UNAUTHORIZED;
+  if (!aiAllowedFor(user.email)) return { ok: false, error: AI_UNAVAILABLE };
   const text = String(resumeText ?? "").trim();
   if (text.length < 200) return { ok: false, error: "Paste your full resume first (at least a few paragraphs)." };
   if (text.length > 30_000) return { ok: false, error: "Resume is too long (30,000 characters max)." };
@@ -70,10 +70,21 @@ export async function suggestProfileFromResume(
 
 // ---------- Search ----------
 
+const SEARCH_COOLDOWN_MS = 10 * 60_000;
+
 export async function searchJobs(): Promise<ActionResult<SearchSummary>> {
   const userId = await currentUserId();
   if (!userId) return UNAUTHORIZED;
   const profile = await getOrCreateJobProfile(userId);
+
+  // One search per user per 10 minutes keeps us polite to the free job APIs.
+  const since = profile.lastSearchAt ? Date.now() - profile.lastSearchAt.getTime() : Infinity;
+  if (since < SEARCH_COOLDOWN_MS) {
+    const mins = Math.ceil((SEARCH_COOLDOWN_MS - since) / 60_000);
+    return { ok: false, error: `You searched recently. Try again in ${mins} minute${mins === 1 ? "" : "s"}.` };
+  }
+  await prisma.jobProfile.update({ where: { userId }, data: { lastSearchAt: new Date() } });
+
   const summary = await runSearch(userId, profile);
   revalidatePath("/jobs");
   return {
@@ -140,9 +151,10 @@ async function ownedJob(userId: string, id: string) {
 
 /** Claude: fit analysis + tailored summary, cover letter and screening answers for one job. */
 export async function generatePacket(jobId: string): Promise<ActionResult> {
-  const userId = await currentUserId();
-  if (!userId) return UNAUTHORIZED;
-  if (!aiConfigured()) return { ok: false, error: "Add ANTHROPIC_API_KEY to .env to use Claude." };
+  const user = await currentUser();
+  if (!user) return UNAUTHORIZED;
+  if (!aiAllowedFor(user.email)) return { ok: false, error: AI_UNAVAILABLE };
+  const userId = user.id;
 
   const [job, profile] = await Promise.all([ownedJob(userId, jobId), getOrCreateJobProfile(userId)]);
   if (!job) return { ok: false, error: "Job not found" };

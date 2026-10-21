@@ -9,8 +9,11 @@ import { PacketWorkspace } from "@/components/jobs/packet-workspace";
 import { StatusSelect } from "@/components/jobs/status-select";
 import { DotMeter } from "@/components/ui/dot-meter";
 import { getJob, getOrCreateJobProfile } from "@/lib/data/jobs";
-import { aiConfigured } from "@/lib/jobs/ai";
+import { aiAllowedFor } from "@/lib/jobs/ai";
 import { JOB_SOURCE_LABELS } from "@/lib/validations";
+
+// Claude drafting can take about a minute.
+export const maxDuration = 120;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const session = await auth();
@@ -119,7 +122,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             status={job.status}
             submittedAt={job.submittedAt?.toISOString() ?? null}
             notes={job.notes}
-            aiReady={aiConfigured()}
+            aiReady={aiAllowedFor(session!.user.email)}
             hasResume={profile.resumeText.trim().length >= 200}
             packet={
               p

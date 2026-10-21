@@ -12,9 +12,12 @@ import { QuickActions } from "@/components/jobs/quick-actions";
 import { SearchButton } from "@/components/jobs/search-button";
 import { Button } from "@/components/ui/button";
 import { getOrCreateJobProfile, jobStats, listJobs } from "@/lib/data/jobs";
-import { aiConfigured } from "@/lib/jobs/ai";
+import { aiAllowedFor } from "@/lib/jobs/ai";
 import { cn } from "@/lib/utils";
 import { JOB_SOURCE_LABELS, JOB_STATUS_LABELS, jobQuerySchema, type JobStatusValue } from "@/lib/validations";
+
+// Job search fans out to ~50 APIs and Claude drafting can take ~a minute.
+export const maxDuration = 120;
 
 export const metadata: Metadata = { title: "Job search" };
 
@@ -37,7 +40,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   const count = (s: JobStatusValue[]) => s.reduce((a, k) => a + (stats.byStatus[k] ?? 0), 0);
   const total = Object.values(stats.byStatus).reduce<number>((a, b) => a + (b ?? 0), 0);
   const hasResume = profile.resumeText.trim().length >= 200;
-  const ai = aiConfigured();
+  const ai = aiAllowedFor(session!.user.email);
 
   const tabHref = (key: string) => {
     const p = new URLSearchParams(raw);
@@ -71,7 +74,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
           <Sparkles className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <p className="flex-1">
             {!ai ? (
-              <>Claude drafting is off. Add <code className="font-mono">ANTHROPIC_API_KEY</code> to <code className="font-mono">.env</code> and restart to get fit analysis and tailored drafts.</>
+              <>Claude drafting isn’t available on this account. Everything else works, and you can write each application packet yourself.</>
             ) : (
               <>Paste your resume in Job profile. Claude only writes from facts in it, and can fill in your skills and keywords for you.</>
             )}

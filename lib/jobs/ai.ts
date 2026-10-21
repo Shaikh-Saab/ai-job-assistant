@@ -18,6 +18,23 @@ const anthropic = () => (client ??= new Anthropic());
 
 export const aiConfigured = () => !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 
+/**
+ * Claude costs money per call, so on a public deployment only the owner(s) listed in
+ * AI_OWNER_EMAILS (comma-separated) may use it. Locally (no list set, not production) it's open.
+ */
+export function aiAllowedFor(email: string | null | undefined) {
+  if (!aiConfigured()) return false;
+  const owners = (process.env.AI_OWNER_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (owners.length === 0) return process.env.NODE_ENV !== "production";
+  return !!email && owners.includes(email.toLowerCase());
+}
+
+export const AI_UNAVAILABLE =
+  "Claude drafting is available to the site owner only. You can still write your packet by hand.";
+
 export class AIError extends Error {}
 
 /** Shared request path: structured output, refusal check, friendly errors. */

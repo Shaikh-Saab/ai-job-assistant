@@ -30,6 +30,12 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ],
 });
 
+/** The signed-in user's id and email, or null. */
+export async function currentUser() {
+  const session = await auth();
+  return session?.user?.id ? { id: session.user.id, email: session.user.email ?? null } : null;
+}
+
 /** For server actions / route handlers: the signed-in user's id, or null. */
 export async function currentUserId() {
   const session = await auth();

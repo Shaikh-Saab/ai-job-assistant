@@ -6,7 +6,10 @@ import { auth } from "@/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { JobProfileForm } from "@/components/jobs/profile-form";
 import { getOrCreateJobProfile } from "@/lib/data/jobs";
-import { aiConfigured } from "@/lib/jobs/ai";
+import { aiAllowedFor } from "@/lib/jobs/ai";
+
+// Job search fans out to ~50 APIs and Claude drafting can take ~a minute.
+export const maxDuration = 120;
 
 export const metadata: Metadata = { title: "Job profile" };
 
@@ -25,7 +28,7 @@ export default async function JobProfilePage() {
         description="Your resume and what to look for. Pre-filled for entry-level AI and GenAI roles worldwide; adjust anything."
       />
       <JobProfileForm
-        aiReady={aiConfigured()}
+        aiReady={aiAllowedFor(session!.user.email)}
         adzunaReady={!!(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY)}
         initial={{
           headline: p.headline,
