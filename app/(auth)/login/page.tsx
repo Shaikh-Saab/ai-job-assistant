@@ -3,13 +3,18 @@ import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { LoginForm } from "@/components/auth/login-form";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { enabledOAuthProviders } from "@/lib/auth-providers";
+
+// Reads email/OAuth configuration at request time.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Sign in" };
 
 const OAUTH_ERRORS: Record<string, string> = {
   OAuthAccountNotLinked: "This email is already registered with a different sign-in method.",
   AccessDenied: "Access denied.",
-  Configuration: "Sign-in is misconfigured. Please contact support.",
+  Configuration: "That sign-in method isn’t available right now. Use your email and password instead.",
+  CredentialsSignin: "Invalid email or password.",
 };
 
 export default async function LoginPage({
@@ -44,18 +49,8 @@ export default async function LoginPage({
           <span className="text-foreground">Password123!</span>
         </p>
       )}
-      <OAuthButtons callbackUrl={callbackUrl} />
-      <Divider />
+      <OAuthButtons providers={enabledOAuthProviders()} callbackUrl={callbackUrl} />
       <LoginForm callbackUrl={callbackUrl} />
     </AuthCard>
-  );
-}
-
-function Divider() {
-  return (
-    <div className="relative text-center text-xs uppercase text-muted-foreground">
-      <span className="absolute inset-x-0 top-1/2 h-px bg-border" aria-hidden="true" />
-      <span className="relative bg-card px-2">or continue with email</span>
-    </div>
   );
 }

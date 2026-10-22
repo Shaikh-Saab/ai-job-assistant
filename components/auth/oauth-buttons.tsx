@@ -3,6 +3,8 @@
 import { useTransition } from "react";
 import { oauthSignIn } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
+import type { OAuthProviderId } from "@/lib/auth-providers";
+import { cn } from "@/lib/utils";
 
 function GitHubIcon() {
   return (
@@ -23,21 +25,47 @@ function GoogleIcon() {
   );
 }
 
-export function OAuthButtons({ callbackUrl }: { callbackUrl?: string }) {
-  const [pending, startTransition] = useTransition();
+const META: Record<OAuthProviderId, { label: string; Icon: () => React.JSX.Element }> = {
+  github: { label: "GitHub", Icon: GitHubIcon },
+  google: { label: "Google", Icon: GoogleIcon },
+};
 
-  const go = (provider: "github" | "google") => startTransition(() => oauthSignIn(provider, callbackUrl));
+/** Buttons for the OAuth providers that are configured on this deployment (none → renders nothing). */
+export function OAuthButtons({
+  providers,
+  callbackUrl,
+  dividerLabel = "or continue with email",
+}: {
+  providers: OAuthProviderId[];
+  callbackUrl?: string;
+  dividerLabel?: string;
+}) {
+  const [pending, startTransition] = useTransition();
+  if (providers.length === 0) return null;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Button variant="outline" type="button" onClick={() => go("github")} disabled={pending}>
-        <GitHubIcon />
-        GitHub
-      </Button>
-      <Button variant="outline" type="button" onClick={() => go("google")} disabled={pending}>
-        <GoogleIcon />
-        Google
-      </Button>
-    </div>
+    <>
+      <div className={cn("grid gap-3", providers.length > 1 && "sm:grid-cols-2")}>
+        {providers.map((p) => {
+          const { label, Icon } = META[p];
+          return (
+            <Button
+              key={p}
+              variant="outline"
+              type="button"
+              disabled={pending}
+              onClick={() => startTransition(() => oauthSignIn(p, callbackUrl))}
+            >
+              <Icon />
+              {label}
+            </Button>
+          );
+        })}
+      </div>
+      <div className="relative text-center text-xs uppercase text-muted-foreground">
+        <span className="absolute inset-x-0 top-1/2 h-px bg-border" aria-hidden="true" />
+        <span className="relative bg-card px-2">{dividerLabel}</span>
+      </div>
+    </>
   );
 }

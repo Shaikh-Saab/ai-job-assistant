@@ -6,9 +6,40 @@ export type ScoringProfile = {
   minSalaryUsd: number | null;
   wantsRelocation: boolean;
   entryLevelOnly: boolean;
+  preferredLocations?: string[];
 };
 
-export type Scored = { score: number; signals: string[]; relevant: boolean; senior: boolean };
+export type Scored = {
+  score: number;
+  signals: string[];
+  relevant: boolean;
+  senior: boolean;
+  /** True when the user has preferred locations and this posting matches none of them. */
+  outsidePreferredLocations: boolean;
+};
+
+/** Common alternate spellings so "UK" matches "London, United Kingdom", etc. */
+const LOCATION_ALIASES: Record<string, string[]> = {
+  uk: ["united kingdom", "england", "scotland", "wales", "london", "gb"],
+  "united kingdom": ["uk", "england", "london"],
+  us: ["united states", "usa", "u.s."],
+  usa: ["united states", "us"],
+  "united states": ["usa", "us"],
+  uae: ["united arab emirates", "dubai", "abu dhabi"],
+  germany: ["deutschland", "berlin", "munich", "münchen", "hamburg"],
+  netherlands: ["amsterdam", "holland"],
+  europe: ["eu", "emea"],
+};
+
+export function matchesLocation(job: Pick<RawJob, "location" | "remote">, prefs: string[]) {
+  const loc = job.location.toLowerCase();
+  return prefs.some((raw) => {
+    const p = raw.trim().toLowerCase();
+    if (!p) return false;
+    if (p === "remote" || p === "anywhere") return job.remote || /remote|anywhere|worldwide/.test(loc);
+    return [p, ...(LOCATION_ALIASES[p] ?? [])].some((alias) => wordRe(alias).test(loc));
+  });
+}
 
 const ENTRY_TITLE = /\b(junior|jr\.?|graduate|grad|new[- ]grad|entry[- ]level|early[- ]career|associate|intern(ship)?|trainee|apprentice|fresher|campus|university|residen(t|cy)|fellow(ship)?|level\s?(i|1)\b|engineer\s?(i|1)\b)/i;
 const ENTRY_TEXT = /\b(0\s?[-–]\s?2\+? years|0\s?[-–]\s?1 years?|1\+ years?|no (prior )?experience (required|needed)|recent graduates?|new graduates?|graduating|early in your career|entry[- ]level)\b/i;
@@ -94,6 +125,19 @@ export function scoreJob(job: RawJob, p: ScoringProfile, now = new Date()): Scor
     }
   }
 
+  // Location preferences
+  const prefs = (p.preferredLocations ?? []).filter((x) => x.trim());
+  let outsidePreferredLocations = false;
+  if (prefs.length) {
+    if (matchesLocation(job, prefs)) {
+      score += 10;
+      signals.push("In your preferred locations");
+    } else {
+      outsidePreferredLocations = true;
+      score -= 6;
+    }
+  }
+
   // Freshness
   const ageDays = (now.getTime() - job.postedAt.getTime()) / 86_400_000;
   if (ageDays <= 2) {
@@ -101,5 +145,5 @@ export function scoreJob(job: RawJob, p: ScoringProfile, now = new Date()): Scor
     signals.push("Posted in the last 2 days");
   }
 
-  return { score: Math.max(0, Math.min(100, Math.round(score))), signals, relevant, senior };
+  return { score: Math.max(0, Math.min(100, Math.round(score))), signals, relevant, senior, outsidePreferredLocations };
 }

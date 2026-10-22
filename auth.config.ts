@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
+import { oauthProviders } from "@/lib/auth-providers";
 
 /**
  * Edge-safe config shared by middleware and the full Node config in `auth.ts`.
@@ -13,7 +14,8 @@ export const AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/reset-p
 export const authConfig = {
   pages: { signIn: "/login", error: "/login" },
   session: { strategy: "jwt" }, // required for the Credentials provider
-  providers: [GitHub, Google],
+  // Only register OAuth providers that have keys; an unconfigured one just errors on click.
+  providers: [...(oauthProviders.github ? [GitHub] : []), ...(oauthProviders.google ? [Google] : [])],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;

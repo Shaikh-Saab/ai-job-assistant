@@ -17,6 +17,7 @@ Built with Next.js 15, TypeScript, PostgreSQL (Prisma), Auth.js, TanStack Query,
 | **5. Submit** | **Open application** takes you to the employer's form, where you paste from your packet and submit. **I submitted it** stays locked until the checklist is complete, then the job moves to your *Submitted* pipeline. |
 
 Also included:
+- **Location preferences:** in **Settings → Location**, set where you live and where you want to work (cities, countries or "Remote"). Matching postings rank higher, or you can hide everything else.
 - **Dashboard:** live KPIs, an activity chart, status breakdown and upcoming deadlines.
 - **Project tracker:** search, filters, sorting and pagination, with create, edit and delete.
 - **PDF reports:** print-ready A4 reports with a live preview, rendered on the server.
@@ -26,6 +27,54 @@ Also included:
 ### What it deliberately doesn't do
 
 It **does not scrape, log into, or automate LinkedIn** or any other site; LinkedIn's terms prohibit automated access. LinkedIn jobs can be added by pasting the link and description. It never submits an application for you.
+
+---
+
+## Live demo
+
+**https://ai-job-assistant-liard.vercel.app** (create an account to try it; Claude drafting is limited to the owner).
+
+---
+
+## Run it on Windows
+
+Steps for Windows 10/11 (PowerShell and [winget](https://learn.microsoft.com/windows/package-manager/winget/) come with Windows 11 and recent Windows 10).
+
+**1. Download the code**
+- **Without Git:** on the GitHub page click **Code → Download ZIP**, then right-click the ZIP → **Extract All…** (for example to `Documents\ai-job-assistant`).
+- **With Git:** `git clone https://github.com/Shaikh-Saab/ai-job-assistant.git`
+
+**2. Double-click `Start Nexus (Windows).bat`** in the extracted folder.
+
+The first run walks you through setup:
+- Installs **Node.js LTS** with winget if you don't have it (accept the Windows prompt).
+- Asks which **database** to use:
+  1. **Free cloud database (easiest):** create a project at [supabase.com](https://supabase.com) or [neon.tech](https://neon.tech), copy its *connection string*, and paste it.
+  2. **Install PostgreSQL on this PC:** winget installs PostgreSQL 17 with the password `postgres`.
+  3. **Already have PostgreSQL:** uses `postgres` / `postgres` on `localhost:5432`.
+- Creates `.env` with a random sign-in secret, installs packages, creates the tables and loads demo data.
+
+It then opens **http://localhost:3000**. Sign in with `demo@nexus.dev` / `Password123!`.
+
+After that, `Start Nexus (Windows).bat` just starts the app. Keep its window open while you use it; press **Ctrl+C** or close the window to stop.
+
+> **"Windows protected your PC"?** Click **More info → Run anyway** (the script is plain text; open it in Notepad to read it first).
+> **"npm is not recognized" right after Node installs?** Close the window and double-click the `.bat` again so Windows picks up the new PATH.
+> To redo setup (e.g. switch databases), delete `.env` and run `Setup Nexus (Windows).bat`.
+
+<details>
+<summary>Manual Windows setup (PowerShell)</summary>
+
+```powershell
+winget install -e --id OpenJS.NodeJS.LTS      # Node.js 20+
+cd ai-job-assistant
+copy .env.example .env                         # then edit DATABASE_URL, DIRECT_URL and AUTH_SECRET in Notepad
+npm install
+npx prisma migrate deploy
+npm run db:seed
+npm run dev                                    # http://localhost:3000
+```
+</details>
 
 ---
 
@@ -71,10 +120,17 @@ All settings live in `.env`, which is never committed. Only the first two are re
 | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | Adzuna search in 19 countries | [developer.adzuna.com](https://developer.adzuna.com) (free) |
 | `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` | "Sign in with GitHub" | GitHub → Settings → Developer settings → OAuth Apps |
 | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | "Sign in with Google" | Google Cloud Console → Credentials |
-| `RESEND_API_KEY` | Password-reset emails | [resend.com](https://resend.com). Without it, reset links print to the terminal. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Password-reset emails | **Gmail (free):** turn on 2-Step Verification, create an [App Password](https://myaccount.google.com/apppasswords), then use `smtp.gmail.com`, port `465`, your Gmail address and the 16-letter app password. Brevo's free SMTP works too. |
+| `RESEND_API_KEY` | Password-reset emails (alternative) | [resend.com](https://resend.com); needs a verified domain to email other people |
 | `BLOB_READ_WRITE_TOKEN` | Avatar uploads | A Vercel Blob store |
 
-Without a Claude key, everything except drafting still works, and you can write packets by hand.
+Without a Claude key, everything except drafting still works, and you can write packets by hand. Without an email setting, "Forgot password" tells users it isn't available instead of failing silently (locally, reset links print to the terminal). The **GitHub** and **Google** sign-in buttons only appear once their keys are set.
+
+### Setting up "Sign in with GitHub / Google"
+
+- **GitHub:** go to GitHub → Settings → Developer settings → **OAuth Apps → New OAuth App**. Use your site URL as the homepage and `https://YOUR-SITE/api/auth/callback/github` as the callback URL. Copy the Client ID into `AUTH_GITHUB_ID`, generate a client secret, and copy it into `AUTH_GITHUB_SECRET`.
+- **Google:** in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials), go to **Create credentials → OAuth client ID → Web application**. Add `https://YOUR-SITE/api/auth/callback/google` as an authorized redirect URI, then copy the values into `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`. You'll first be asked to set up the OAuth consent screen: choose "External" and add your email as a test user.
+- For local use, the callback URLs start with `http://localhost:3000`.
 
 ---
 

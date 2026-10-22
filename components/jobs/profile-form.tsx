@@ -36,6 +36,9 @@ export function JobProfileForm({ initial, aiReady, adzunaReady }: { initial: Job
     minSalaryUsd: initial.minSalaryUsd?.toString() ?? "",
     wantsRelocation: initial.wantsRelocation,
     entryLevelOnly: initial.entryLevelOnly,
+    currentLocation: initial.currentLocation,
+    preferredLocations: fromList(initial.preferredLocations),
+    onlyPreferredLocations: initial.onlyPreferredLocations,
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }));
 
@@ -68,6 +71,9 @@ export function JobProfileForm({ initial, aiReady, adzunaReady }: { initial: Job
         minSalaryUsd: f.minSalaryUsd ? Math.round(Number(f.minSalaryUsd)) : null,
         wantsRelocation: f.wantsRelocation,
         entryLevelOnly: f.entryLevelOnly,
+        currentLocation: f.currentLocation,
+        preferredLocations: toList(f.preferredLocations),
+        onlyPreferredLocations: f.onlyPreferredLocations && toList(f.preferredLocations).length > 0,
       };
       const res = await saveJobProfile(payload);
       if (!res.ok) {
@@ -125,6 +131,25 @@ export function JobProfileForm({ initial, aiReady, adzunaReady }: { initial: Job
             <Switch checked={f.entryLevelOnly} onCheckedChange={(v) => set("entryLevelOnly", v)} aria-label="Hide senior roles" />
           </label>
         </div>
+      </section>
+
+      <section className="space-y-4 rounded-xl border bg-card p-6" aria-labelledby="loc-h">
+        <div>
+          <p className="eyebrow">Location</p>
+          <h2 id="loc-h" className="font-display text-xl font-semibold">Where you want to work</h2>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField id="jp-current" label="Where you live now" error={errors.currentLocation}>
+            {(a) => <Input maxLength={120} placeholder="e.g. Karachi, Pakistan" value={f.currentLocation} onChange={(e) => set("currentLocation", e.target.value)} {...a} />}
+          </FormField>
+          <FormField id="jp-places" label="Preferred locations" hint="Comma separated, e.g. Remote, UK, Germany" error={errors.preferredLocations}>
+            {(a) => <Input value={f.preferredLocations} onChange={(e) => set("preferredLocations", e.target.value)} {...a} />}
+          </FormField>
+        </div>
+        <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+          <span>Only show jobs in my preferred locations</span>
+          <Switch checked={f.onlyPreferredLocations} onCheckedChange={(v) => set("onlyPreferredLocations", v)} aria-label="Only show jobs in preferred locations" />
+        </label>
       </section>
 
       <section className="space-y-4 rounded-xl border bg-card p-6" aria-labelledby="sources-h">

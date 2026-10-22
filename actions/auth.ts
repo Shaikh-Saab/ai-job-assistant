@@ -4,9 +4,10 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 
 import { signIn, signOut } from "@/auth";
+import { enabledOAuthProviders, type OAuthProviderId } from "@/lib/auth-providers";
 import { prisma } from "@/lib/prisma";
 import { createPasswordResetToken, hashToken } from "@/lib/tokens";
-import { sendPasswordResetEmail } from "@/lib/mail";
+import { emailConfigured, sendPasswordResetEmail } from "@/lib/mail";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -74,8 +75,8 @@ export async function register(input: unknown): Promise<ActionResult> {
   }
 }
 
-export async function oauthSignIn(provider: "github" | "google", callbackUrl?: string | null) {
-  if (provider !== "github" && provider !== "google") throw new Error("Unknown provider");
+export async function oauthSignIn(provider: OAuthProviderId, callbackUrl?: string | null) {
+  if (!enabledOAuthProviders().includes(provider)) throw new Error("This sign-in method isn't set up");
   await signIn(provider, { redirectTo: safeRedirect(callbackUrl) });
 }
 
@@ -90,6 +91,11 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
   const parsed = forgotPasswordSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Invalid input", fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  // In production, never claim an email was sent when the site has no way to send one.
+  if (process.env.NODE_ENV === "production" && !emailConfigured()) {
+    return { ok: false, error: "Password reset by email isn’t set up on this site yet. Please contact the site owner." };
   }
 
   const user = await prisma.user.findUnique({

@@ -188,8 +188,19 @@ export const jobProfileSchema = z.object({
   minSalaryUsd: z.number().int().min(0).max(10_000_000).nullable(),
   wantsRelocation: z.boolean(),
   entryLevelOnly: z.boolean(),
+  currentLocation: z.string().trim().max(120),
+  preferredLocations: listOf(z.string().trim().min(1).max(60), 30),
+  onlyPreferredLocations: z.boolean(),
 });
 export type JobProfileInput = z.infer<typeof jobProfileSchema>;
+
+export const locationPrefsSchema = jobProfileSchema.pick({
+  currentLocation: true,
+  preferredLocations: true,
+  onlyPreferredLocations: true,
+  wantsRelocation: true,
+});
+export type LocationPrefsInput = z.infer<typeof locationPrefsSchema>;
 
 export const manualJobSchema = z.object({
   url: z.string().trim().url("Paste the full job link"),

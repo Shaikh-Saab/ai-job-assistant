@@ -42,6 +42,9 @@ export default async function JobProfilePage() {
           minSalaryUsd: p.minSalaryUsd,
           wantsRelocation: p.wantsRelocation,
           entryLevelOnly: p.entryLevelOnly,
+          currentLocation: p.currentLocation,
+          preferredLocations: p.preferredLocations,
+          onlyPreferredLocations: p.onlyPreferredLocations,
         }}
       />
     </>

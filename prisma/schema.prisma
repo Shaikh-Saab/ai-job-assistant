@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   /// Non-pooled connection used by `prisma migrate` (same as DATABASE_URL locally).
   directUrl = env("DIRECT_URL")
@@ -118,24 +118,30 @@ model Project {
 
 /// What the user is looking for, plus the resume text Claude drafts from.
 model JobProfile {
-  id               String   @id @default(cuid())
-  userId           String   @unique
-  headline         String   @default("") @db.VarChar(160)
-  resumeText       String   @default("") @db.Text
-  skills           String[]
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  headline               String    @default("") @db.VarChar(160)
+  resumeText             String    @default("") @db.Text
+  skills                 String[]
   /// Role keywords; a posting must match at least one to count as relevant.
-  roleKeywords     String[]
+  roleKeywords           String[]
   /// Adzuna country codes (gb, us, in, de, ...).
-  countries        String[]
-  greenhouseBoards String[]
-  leverBoards      String[]
-  ashbyBoards      String[]
-  minSalaryUsd     Int?
-  wantsRelocation  Boolean  @default(true)
-  entryLevelOnly   Boolean  @default(true)
+  countries              String[]
+  greenhouseBoards       String[]
+  leverBoards            String[]
+  ashbyBoards            String[]
+  minSalaryUsd           Int?
+  /// Where the user lives now (used in drafts, e.g. relocation answers).
+  currentLocation        String    @default("") @db.VarChar(120)
+  /// Cities, countries or "Remote"; matching postings rank higher.
+  preferredLocations     String[]
+  /// Hide postings outside preferredLocations entirely.
+  onlyPreferredLocations Boolean   @default(false)
+  wantsRelocation        Boolean   @default(true)
+  entryLevelOnly         Boolean   @default(true)
   /// Last job search run; used to rate-limit searches per user.
-  lastSearchAt     DateTime?
-  updatedAt        DateTime @updatedAt
+  lastSearchAt           DateTime?
+  updatedAt              DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

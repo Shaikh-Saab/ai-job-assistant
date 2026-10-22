@@ -47,11 +47,18 @@ export async function runSearch(userId: string, profile: JobProfile): Promise<Se
     minSalaryUsd: profile.minSalaryUsd,
     wantsRelocation: profile.wantsRelocation,
     entryLevelOnly: profile.entryLevelOnly,
+    preferredLocations: profile.preferredLocations,
   };
 
   const matches = all
     .map((job) => ({ job, ...scoreJob(job, scoringProfile) }))
-    .filter((m) => m.relevant && !(profile.entryLevelOnly && m.senior) && m.score >= MIN_SAVE_SCORE);
+    .filter(
+      (m) =>
+        m.relevant &&
+        !(profile.entryLevelOnly && m.senior) &&
+        !(profile.onlyPreferredLocations && m.outsidePreferredLocations) &&
+        m.score >= MIN_SAVE_SCORE,
+    );
 
   // The same role can appear in several feeds; keep the highest-scoring copy per company+title.
   const best = new Map<string, (typeof matches)[number]>();

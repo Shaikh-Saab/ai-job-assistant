@@ -15,6 +15,7 @@ import {
   JOB_STATUSES,
   SUBMIT_CHECKLIST,
   jobProfileSchema,
+  locationPrefsSchema,
   manualJobSchema,
   packetSchema,
   type ChecklistKey,
@@ -43,6 +44,19 @@ export async function saveJobProfile(input: unknown): Promise<ActionResult> {
   await prisma.jobProfile.update({ where: { userId }, data: parsed.data });
   revalidatePath("/jobs");
   return { ok: true, message: "Search profile saved" };
+}
+
+export async function saveLocationPreferences(input: unknown): Promise<ActionResult> {
+  const userId = await currentUserId();
+  if (!userId) return UNAUTHORIZED;
+  const parsed = locationPrefsSchema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+
+  await getOrCreateJobProfile(userId);
+  await prisma.jobProfile.update({ where: { userId }, data: parsed.data });
+  revalidatePath("/jobs");
+  revalidatePath("/settings");
+  return { ok: true, message: "Location preferences saved. They apply from your next search." };
 }
 
 /** Claude reads the pasted resume and suggests headline, skills and role keywords. */

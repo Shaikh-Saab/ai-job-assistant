@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { AvatarForm } from "@/components/settings/avatar-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { PreferencesForm } from "@/components/settings/preferences-form";
+import { LocationForm } from "@/components/settings/location-form";
+import { getOrCreateJobProfile } from "@/lib/data/jobs";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -24,6 +26,7 @@ export default async function SettingsPage() {
     },
   });
   if (!user) redirect("/login");
+  const jobProfile = await getOrCreateJobProfile(session!.user.id);
 
   return (
     <>
@@ -37,6 +40,14 @@ export default async function SettingsPage() {
             ...(user.passwordHash ? ["Email & password"] : []),
             ...user.accounts.map((a) => (a.provider === "github" ? "GitHub" : a.provider === "google" ? "Google" : a.provider)),
           ]}
+        />
+        <LocationForm
+          initial={{
+            currentLocation: jobProfile.currentLocation,
+            preferredLocations: jobProfile.preferredLocations,
+            onlyPreferredLocations: jobProfile.onlyPreferredLocations,
+            wantsRelocation: jobProfile.wantsRelocation,
+          }}
         />
       </div>
     </>

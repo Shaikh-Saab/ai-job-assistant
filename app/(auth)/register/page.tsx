@@ -3,6 +3,10 @@ import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { RegisterForm } from "@/components/auth/register-form";
+import { enabledOAuthProviders } from "@/lib/auth-providers";
+
+// Reads email/OAuth configuration at request time.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Create account" };
 
@@ -21,11 +25,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <OAuthButtons />
-      <div className="relative text-center text-xs uppercase text-muted-foreground">
-        <span className="absolute inset-x-0 top-1/2 h-px bg-border" aria-hidden="true" />
-        <span className="relative bg-card px-2">or sign up with email</span>
-      </div>
+      <OAuthButtons providers={enabledOAuthProviders()} dividerLabel="or sign up with email" />
       <RegisterForm />
     </AuthCard>
   );

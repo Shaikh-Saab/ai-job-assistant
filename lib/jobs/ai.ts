@@ -121,6 +121,8 @@ export async function draftApplication(job: Job, profile: JobProfile) {
     `<applicant>`,
     profile.headline ? `Headline: ${profile.headline}` : null,
     profile.skills.length ? `Skills: ${profile.skills.join(", ")}` : null,
+    profile.currentLocation ? `Currently based in: ${profile.currentLocation}` : null,
+    profile.preferredLocations.length ? `Preferred locations: ${profile.preferredLocations.join(", ")}` : null,
     `Open to relocation: ${profile.wantsRelocation ? "yes" : "no"}`,
     ``,
     profile.resumeText,
