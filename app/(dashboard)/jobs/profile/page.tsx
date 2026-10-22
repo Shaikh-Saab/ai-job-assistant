@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { JobProfileForm } from "@/components/jobs/profile-form";
+import { DigestToggle } from "@/components/jobs/digest-toggle";
+import { emailConfigured } from "@/lib/mail";
 import { getOrCreateJobProfile } from "@/lib/data/jobs";
 import { aiAllowedFor } from "@/lib/jobs/ai";
 
@@ -27,6 +29,9 @@ export default async function JobProfilePage() {
         title="Job profile"
         description="Your resume and what to look for. Pre-filled for entry-level AI and GenAI roles worldwide; adjust anything."
       />
+      <div className="max-w-4xl">
+        <DigestToggle enabled={p.dailyDigest} emailReady={emailConfigured()} />
+      </div>
       <JobProfileForm
         aiReady={aiAllowedFor(session!.user.email)}
         adzunaReady={!!(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY)}

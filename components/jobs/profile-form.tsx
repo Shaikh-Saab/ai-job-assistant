@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { FileUp, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-import { saveJobProfile, suggestProfileFromResume } from "@/actions/jobs";
+import { extractResumeFromPdf, saveJobProfile, suggestProfileFromResume } from "@/actions/jobs";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,21 @@ export function JobProfileForm({ initial, aiReady, adzunaReady }: { initial: Job
   const router = useRouter();
   const [saving, startSave] = useTransition();
   const [suggesting, startSuggest] = useTransition();
+  const [reading, startRead] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const readPdf = (file: File | undefined) => {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("resume", file);
+    startRead(async () => {
+      const res = await extractResumeFromPdf(fd);
+      if (fileRef.current) fileRef.current.value = "";
+      if (!res.ok || !res.data) return void toast.error(res.ok ? "No text found" : res.error);
+      set("resumeText", res.data.text);
+      toast.success(res.message);
+    });
+  };
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
   const [f, setF] = useState({
@@ -93,11 +108,25 @@ export function JobProfileForm({ initial, aiReady, adzunaReady }: { initial: Job
           <div>
             <p className="eyebrow">You</p>
             <h2 id="resume-h" className="font-display text-xl font-semibold">Resume</h2>
-            <p className="text-sm text-muted-foreground">Paste it as plain text. Claude drafts only from what’s here.</p>
+            <p className="text-sm text-muted-foreground">Upload a PDF or paste the text. Claude drafts only from what’s here.</p>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={suggest} loading={suggesting} disabled={!aiReady || f.resumeText.trim().length < 200}>
-            {!suggesting && <Sparkles aria-hidden="true" />} Fill from resume with Claude
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden="true"
+              onChange={(e) => readPdf(e.target.files?.[0])}
+            />
+            <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} loading={reading}>
+              {!reading && <FileUp aria-hidden="true" />} Upload PDF
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={suggest} loading={suggesting} disabled={!aiReady || f.resumeText.trim().length < 200}>
+              {!suggesting && <Sparkles aria-hidden="true" />} Fill from resume with Claude
+            </Button>
+          </div>
         </div>
         <FormField id="jp-resume" label="Resume text" error={errors.resumeText} hint={`${f.resumeText.length.toLocaleString()} / 30,000 characters`}>
           {(a) => <Textarea rows={12} value={f.resumeText} onChange={(e) => set("resumeText", e.target.value)} className="font-mono text-xs" {...a} />}

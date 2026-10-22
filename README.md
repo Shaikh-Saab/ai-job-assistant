@@ -17,6 +17,13 @@ Built with Next.js 15, TypeScript, PostgreSQL (Prisma), Auth.js, TanStack Query,
 | **5. Submit** | **Open application** takes you to the employer's form, where you paste from your packet and submit. **I submitted it** stays locked until the checklist is complete, then the job moves to your *Submitted* pipeline. |
 
 Also included:
+- **Follow-up reminders:** submitting schedules a reminder 7 days out. Due follow-ups show in a **Follow up** tab and banner, and you can snooze, clear or log them.
+- **Daily digest:** turn it on in *Job profile*. Every morning the app runs your search and emails your best new matches plus any follow-ups that are due.
+- **Insights:** your funnel (found → shortlisted → prepared → submitted → interview → offer), response and interview rates, applications per week, and which sources produce your interviews.
+- **Activity history:** a timeline on every job: found, drafted, edited, submitted, followed up, status changes.
+- **Resume PDF upload:** upload your resume as a PDF and its text is extracted for you (no AI needed).
+- **Interview prep (Claude):** likely questions with answer outlines from your resume, STAR stories to prepare, topics to revise, and questions to ask them.
+- **CSV export:** download every tracked job for Excel or Google Sheets.
 - **Location preferences:** in **Settings → Location**, set where you live and where you want to work (cities, countries or "Remote"). Matching postings rank higher, or you can hide everything else.
 - **Dashboard:** live KPIs, an activity chart, status breakdown and upcoming deadlines.
 - **Project tracker:** search, filters, sorting and pagination, with create, edit and delete.
@@ -179,10 +186,26 @@ components/               UI (shadcn/ui primitives + feature components)
 | `npm run build` / `npm start` | Production build / serve |
 | `npm run typecheck` · `npm run lint` | Type and lint checks |
 | `npm run db:migrate` · `npm run db:seed` · `npm run db:studio` | Database tools |
+| `npm test` | Unit and integration tests (see below) |
+| `npm run test:smoke` | End-to-end checks against a running app |
+| `npm run test:all` | Type check, lint, tests and smoke checks |
+
+### Tests
+
+```bash
+npm test                 # 62 unit + integration tests (Vitest)
+npm run test:smoke       # 27 end-to-end checks against http://localhost:3000 (start the app first)
+BASE_URL=https://your-site EMAIL=you@x.com PASSWORD=… npm run test:smoke   # against a deployment
+```
+
+- **Unit tests:** job scoring and location matching, HTML and salary parsing, CSV (including formula-injection protection), Zod validation, PDF report maths, email building and escaping, and the owner-only Claude gate.
+- **Integration tests:** the real server actions against a **separate `nexus_test` database**, which is never your real data. They cover project CRUD and ownership, sign-up, the full password-reset flow (including reused and expired links), adding and tracking jobs, the submit checklist, follow-ups, activity history, search rate-limiting, resume PDF extraction, insights, the daily digest, CSV export, PDF reports and cron protection.
+- Create the test database once: `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nexus_test npx prisma migrate deploy`, or set `TEST_DATABASE_URL`.
+- **Claude isn't called in tests:** they check that Claude features are blocked for non-owners, without spending API credit.
 
 ### Deploying
 
-The app is ready for Vercel. Add the variables above in the project settings, use a hosted Postgres, and set the build command to `prisma migrate deploy && next build`.
+The app is ready for Vercel: `vercel.json` sets the region, the build and the daily cron job. Add the variables above in the project settings, use a hosted Postgres such as Supabase or Neon, and add a random `CRON_SECRET`. Vercel sends it to `/api/cron/daily` each morning (03:00 UTC). On other hosts, call that URL daily with `Authorization: Bearer <CRON_SECRET>`.
 
 ---
 
@@ -190,5 +213,4 @@ The app is ready for Vercel. Add the variables above in the project settings, us
 
 - Rate limiting on sign-in and password reset
 - Email verification for new accounts
-- Follow-up reminders for submitted applications
-- Tests (Zod schemas, server actions, Playwright end-to-end)
+- Browser end-to-end tests (Playwright) for the main flows

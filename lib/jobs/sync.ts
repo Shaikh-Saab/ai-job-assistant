@@ -78,8 +78,9 @@ export async function runSearch(userId: string, profile: JobProfile): Promise<Se
 
   let added = 0;
   let updated = 0;
+  const newJobIds: string[] = [];
   for (const chunk of chunked([...best.values()], 25)) {
-    await prisma.$transaction(
+    const saved = await prisma.$transaction(
       chunk.map(({ job, score, signals }) => {
         const isNew = !existing.has(`${job.source}|${job.externalId}`);
         if (isNew) added++;
@@ -94,9 +95,17 @@ export async function runSearch(userId: string, profile: JobProfile): Promise<Se
           where: { userId_source_externalId: { userId, source: job.source, externalId: job.externalId } },
           create: { userId, source: job.source, externalId: job.externalId, ...data },
           update: data, // status, notes and packet are left untouched
+          select: { id: true },
         });
       }),
     );
+    // $transaction keeps order, so saved[i] corresponds to chunk[i].
+    newJobIds.push(
+      ...saved.filter((_, i) => !existing.has(`${chunk[i].job.source}|${chunk[i].job.externalId}`)).map((j) => j.id),
+    );
+  }
+  if (newJobIds.length) {
+    await prisma.jobEvent.createMany({ data: newJobIds.map((jobId) => ({ jobId, type: "FOUND" as const, detail: "Found by job search" })) });
   }
 
   return {
@@ -106,6 +115,7 @@ export async function runSearch(userId: string, profile: JobProfile): Promise<Se
     added,
     updated,
     skippedSources,
+    newJobIds,
   };
 }
 

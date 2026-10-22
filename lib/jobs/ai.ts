@@ -134,4 +134,28 @@ export async function draftApplication(job: Job, profile: JobProfile) {
   return structured(PacketDraft, DRAFT_SYSTEM, user, "medium");
 }
 
+// ---------- Interview prep ----------
+
+export const InterviewPrep = z.object({
+  questions: z
+    .array(z.object({ question: z.string(), why: z.string(), answerOutline: z.string() }))
+    .describe("8–10 likely questions for this role, each with why they ask it and an outline answer using real resume facts"),
+  technicalTopics: z.array(z.string()).describe("Topics to revise, drawn from the job's requirements"),
+  questionsToAsk: z.array(z.string()).describe("Thoughtful questions the candidate can ask the interviewer"),
+  storiesToPrepare: z.array(z.string()).describe("Projects or experiences from the resume worth preparing as STAR stories"),
+});
+export type InterviewPrep = z.infer<typeof InterviewPrep>;
+
+export async function generateInterviewPrep(job: Job, profile: JobProfile) {
+  return structured(
+    InterviewPrep,
+    `You coach a fresh graduate for a job interview. Base every answer outline only on facts in the resume; where the resume has nothing relevant, say what to prepare instead of inventing experience. Be specific to this company and role.`,
+    [
+      `<job>\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\n\n${job.description || "(no description)"}\n</job>`,
+      `<applicant>\n${profile.headline ? `Headline: ${profile.headline}\n` : ""}${profile.resumeText}\n</applicant>`,
+    ].join("\n\n"),
+    "medium",
+  );
+}
+
 export const AI_MODEL = MODEL;

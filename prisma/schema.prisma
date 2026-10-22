@@ -141,6 +141,9 @@ model JobProfile {
   entryLevelOnly         Boolean   @default(true)
   /// Last job search run; used to rate-limit searches per user.
   lastSearchAt           DateTime?
+  /// Daily automatic search + email digest (runs from the /api/cron/daily job).
+  dailyDigest            Boolean   @default(false)
+  lastDigestAt           DateTime?
   updatedAt              DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -188,6 +191,8 @@ model Job {
   signals      String[]
   status       JobStatus @default(NEW)
   submittedAt  DateTime?
+  /// When to chase the employer if there's no reply (set to +7 days on submit).
+  followUpAt   DateTime?
   notes        String    @default("") @db.Text
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -195,31 +200,60 @@ model Job {
   user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   packet ApplicationPacket?
 
+  events JobEvent[]
+
   @@unique([userId, source, externalId])
   @@index([userId, status, score])
   @@index([userId, postedAt])
+  @@index([userId, followUpAt])
+}
+
+enum JobEventType {
+  FOUND
+  STATUS
+  DRAFTED
+  PACKET_SAVED
+  SUBMITTED
+  FOLLOW_UP_SET
+  FOLLOWED_UP
+  INTERVIEW_PREP
+}
+
+/// Append-only activity history for a job ("found", "drafted", "submitted", ...).
+model JobEvent {
+  id        String       @id @default(cuid())
+  jobId     String
+  type      JobEventType
+  detail    String       @default("") @db.VarChar(300)
+  createdAt DateTime     @default(now())
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, createdAt])
 }
 
 /// Everything the user needs open while filling in the employer's form.
 model ApplicationPacket {
-  id          String    @id @default(cuid())
-  jobId       String    @unique
+  id            String    @id @default(cuid())
+  jobId         String    @unique
   /// Claude's resume-aware fit assessment (0–100) and reasoning.
-  fitScore    Int?
-  fitSummary  String    @default("") @db.Text
-  strengths   String[]
-  gaps        String[]
-  summary     String    @default("") @db.Text
-  coverLetter String    @default("") @db.Text
+  fitScore      Int?
+  fitSummary    String    @default("") @db.Text
+  strengths     String[]
+  gaps          String[]
+  summary       String    @default("") @db.Text
+  coverLetter   String    @default("") @db.Text
   /// [{ question, answer }]
-  answers     Json      @default("[]")
+  answers       Json      @default("[]")
   /// Points the user must verify themselves (gaps, assumptions Claude made).
-  checks      String[]
+  checks        String[]
   /// { [checklistKey]: boolean }
-  checklist   Json      @default("{}")
-  model       String?
-  generatedAt DateTime?
-  updatedAt   DateTime  @updatedAt
+  checklist     Json      @default("{}")
+  model         String?
+  generatedAt   DateTime?
+  /// Claude interview prep: likely questions, answer outlines, questions to ask.
+  interviewPrep Json?
+  updatedAt     DateTime  @updatedAt
 
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }

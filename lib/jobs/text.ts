@@ -54,6 +54,8 @@ export const ADZUNA_CURRENCY: Record<string, string> = {
 /** First money figure in free text like "CA$215K – CA$295K" or "$90,000 - $120,000", as USD. */
 export function parseSalaryText(text: string | null | undefined): number | null {
   if (!text) return null;
+  // Hourly, daily, monthly or per-task pay isn't comparable to an annual minimum.
+  if (/(?:\bper|\ban?|\/)\s*(?:hour|hr|task|day|week|month)\b|\b(?:hourly|daily|monthly)\b/i.test(text)) return null;
   const m = text.match(/(CA\$|A\$|NZ\$|S\$|US\$|\$|£|€|₹)\s?([\d,.]+)\s?(k|K)?/);
   if (!m) return null;
   const cur = { "CA$": "CAD", "A$": "AUD", "NZ$": "NZD", "S$": "SGD", "US$": "USD", $: "USD", "£": "GBP", "€": "EUR", "₹": "INR" }[m[1]] ?? "USD";

@@ -5,5 +5,11 @@
     "sin1"
   ],
   "installCommand": "npm ci --include=dev",
-  "buildCommand": "npx prisma migrate deploy && npm run build"
+  "buildCommand": "npx prisma migrate deploy && npm run build",
+  "crons": [
+    {
+      "path": "/api/cron/daily",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }

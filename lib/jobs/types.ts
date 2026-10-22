@@ -30,4 +30,6 @@ export type SearchSummary = {
   added: number;
   updated: number;
   skippedSources: string[];
+  /** Ids of jobs this search created (used by the daily digest). */
+  newJobIds: string[];
 };

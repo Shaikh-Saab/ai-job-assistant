@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowUpRight, FileText, Settings2, Sparkles } from "lucide-react";
+import { ArrowUpRight, BarChart3, BellRing, Download, FileText, Settings2, Sparkles } from "lucide-react";
 
 import { auth } from "@/auth";
 import { PageHeader } from "@/components/layout/page-header";
@@ -26,6 +26,7 @@ const TABS: { key: string; label: string; statuses: JobStatusValue[] }[] = [
   { key: "SHORTLISTED", label: "Shortlisted", statuses: ["SHORTLISTED"] },
   { key: "PREPARED", label: "Ready to submit", statuses: ["PREPARED"] },
   { key: "SUBMITTED", label: "Submitted", statuses: ["SUBMITTED"] },
+  { key: "FOLLOWUP", label: "Follow up", statuses: [] },
   { key: "INTERVIEW", label: "Interviews", statuses: ["INTERVIEW", "OFFER"] },
   { key: "all", label: "All", statuses: [] },
 ];
@@ -62,6 +63,17 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 <Settings2 aria-hidden="true" /> Job profile
               </Link>
             </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/jobs/insights">
+                <BarChart3 aria-hidden="true" /> Insights
+              </Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              {/* Plain link: a file download, not a page navigation */}
+              <a href="/api/jobs/export" download>
+                <Download aria-hidden="true" /> Export CSV
+              </a>
+            </Button>
             <AddJobDialog />
             <SearchButton />
           </>
@@ -87,6 +99,20 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         </div>
       )}
 
+      {stats.followUpsDue > 0 && q.tab !== "FOLLOWUP" && (
+        <Link
+          href="/jobs?tab=FOLLOWUP"
+          className="flex items-center gap-3 rounded-xl border border-amber-400/60 bg-amber-50 p-4 text-sm text-amber-950 transition-colors hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-100 dark:hover:bg-amber-500/15"
+        >
+          <BellRing className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span className="flex-1">
+            <span className="font-medium">{stats.followUpsDue} follow-up{stats.followUpsDue === 1 ? "" : "s"} due.</span> No reply yet from these
+            employers; a short check-in helps.
+          </span>
+          <span className="font-medium underline underline-offset-4">Review</span>
+        </Link>
+      )}
+
       {/* Pipeline strip */}
       <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-4" aria-label="Pipeline">
         {[
@@ -106,7 +132,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         <nav aria-label="Pipeline stage" className="flex gap-1 overflow-x-auto border-b px-3 pt-3">
           {TABS.map((t) => {
             const active = q.tab === t.key;
-            const n = t.key === "all" ? total : count(t.statuses);
+            const n = t.key === "all" ? total : t.key === "FOLLOWUP" ? stats.followUpsDue : count(t.statuses);
             return (
               <Link
                 key={t.key}

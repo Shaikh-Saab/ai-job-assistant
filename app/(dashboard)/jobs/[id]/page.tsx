@@ -7,6 +7,10 @@ import { auth } from "@/auth";
 import { JobStatusBadge, ScoreMark, timeAgo } from "@/components/jobs/job-bits";
 import { PacketWorkspace } from "@/components/jobs/packet-workspace";
 import { StatusSelect } from "@/components/jobs/status-select";
+import { ActivityTimeline } from "@/components/jobs/activity-timeline";
+import { FollowUpControl } from "@/components/jobs/follow-up-control";
+import { InterviewPrep } from "@/components/jobs/interview-prep";
+import type { InterviewPrep as Prep } from "@/lib/jobs/ai";
 import { DotMeter } from "@/components/ui/dot-meter";
 import { getJob, getOrCreateJobProfile } from "@/lib/data/jobs";
 import { aiAllowedFor } from "@/lib/jobs/ai";
@@ -30,6 +34,8 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
   const p = job.packet;
   const answers = (Array.isArray(p?.answers) ? p!.answers : []) as { question: string; answer: string }[];
+  const aiReady = aiAllowedFor(session!.user.email);
+  const afterSubmit = ["SUBMITTED", "INTERVIEW", "OFFER"].includes(job.status);
 
   return (
     <>
@@ -61,6 +67,11 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
         <div className="min-w-0 space-y-6">
+          {job.status === "SUBMITTED" && <FollowUpControl jobId={job.id} followUpAt={job.followUpAt?.toISOString() ?? null} />}
+          {(afterSubmit || p?.interviewPrep) && (
+            <InterviewPrep jobId={job.id} prep={(p?.interviewPrep as Prep | null) ?? null} aiReady={aiReady} />
+          )}
+
           {/* Claude's fit analysis */}
           {p?.fitScore != null && (
             <section className="rounded-xl border bg-card p-5" aria-labelledby="fit-h">
@@ -113,6 +124,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               )}
             </div>
           </section>
+          <ActivityTimeline events={job.events} />
         </div>
 
         <div className="xl:sticky xl:top-20 xl:self-start">
@@ -122,7 +134,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             status={job.status}
             submittedAt={job.submittedAt?.toISOString() ?? null}
             notes={job.notes}
-            aiReady={aiAllowedFor(session!.user.email)}
+            aiReady={aiReady}
             hasResume={profile.resumeText.trim().length >= 200}
             packet={
               p

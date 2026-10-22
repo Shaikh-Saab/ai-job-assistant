@@ -219,7 +219,7 @@ export const packetSchema = z.object({
 export type PacketInput = z.infer<typeof packetSchema>;
 
 export const jobQuerySchema = z.object({
-  tab: z.enum(["active", ...JOB_STATUSES, "all"]).default("active").catch("active"),
+  tab: z.enum(["active", "FOLLOWUP", ...JOB_STATUSES, "all"]).default("active").catch("active"),
   q: z.string().trim().max(100).optional().catch(undefined),
   source: z.string().max(20).optional().catch(undefined),
   minScore: z.coerce.number().int().min(0).max(100).default(0).catch(0),
