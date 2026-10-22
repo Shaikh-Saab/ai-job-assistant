@@ -1,4 +1,5 @@
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { TextSizeToggle } from "@/components/a11y/text-size-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { UserNav } from "@/components/layout/user-nav";
 import { LogoMark } from "@/components/brand/logo";
@@ -16,6 +17,7 @@ export function Header({ user }: HeaderProps) {
         {today}
       </p>
       <div className="flex-1" />
+      <TextSizeToggle className="hidden sm:inline-flex" />
       <ThemeToggle />
       <UserNav {...user} />
     </header>

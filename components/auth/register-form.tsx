@@ -6,10 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 
 import { register as registerUser } from "@/actions/auth";
+import { FormAlert } from "@/components/auth/form-alert";
+import { PasswordChecklist } from "@/components/auth/password-checklist";
+import { PasswordInput } from "@/components/auth/password-input";
+import { bigButton, bigInput } from "@/components/auth/sizes";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/auth/password-input";
 import { applyFieldErrors } from "@/lib/form";
 import { registerSchema } from "@/lib/validations";
 
@@ -22,6 +25,7 @@ export function RegisterForm() {
     register,
     handleSubmit,
     setError,
+    watch,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(registerSchema),
@@ -40,31 +44,45 @@ export function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      {formError && (
-        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {formError}
-        </p>
-      )}
-      <FormField id="name" label="Full name" error={errors.name?.message}>
-        {(aria) => <Input autoComplete="name" {...aria} {...register("name")} />}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+      {formError && <FormAlert>{formError}</FormAlert>}
+      <FormField id="name" label="Your name" size="lg" error={errors.name?.message}>
+        {(aria) => <Input autoComplete="name" autoFocus className={bigInput} {...aria} {...register("name")} />}
       </FormField>
-      <FormField id="email" label="Email" error={errors.email?.message}>
-        {(aria) => <Input type="email" autoComplete="email" {...aria} {...register("email")} />}
+      <FormField id="email" label="Email address" size="lg" error={errors.email?.message}>
+        {(aria) => (
+          <Input
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="name@example.com"
+            className={bigInput}
+            {...aria}
+            {...register("email")}
+          />
+        )}
       </FormField>
-      <FormField
-        id="password"
-        label="Password"
-        error={errors.password?.message}
-        hint="8+ characters with upper & lowercase letters and a number."
-      >
-        {(aria) => <PasswordInput autoComplete="new-password" {...aria} {...register("password")} />}
+      <FormField id="password" label="Choose a password" size="lg" error={errors.password?.message}>
+        {(aria) => (
+          <div className="space-y-3">
+            <PasswordInput
+              autoComplete="new-password"
+              className={bigInput}
+              {...aria}
+              aria-describedby={[aria["aria-describedby"], "password-rules"].filter(Boolean).join(" ")}
+              {...register("password")}
+            />
+            <PasswordChecklist id="password-rules" password={watch("password")} />
+          </div>
+        )}
       </FormField>
-      <FormField id="confirmPassword" label="Confirm password" error={errors.confirmPassword?.message}>
-        {(aria) => <PasswordInput autoComplete="new-password" {...aria} {...register("confirmPassword")} />}
+      <FormField id="confirmPassword" label="Type the password again" size="lg" error={errors.confirmPassword?.message}>
+        {(aria) => <PasswordInput autoComplete="new-password" className={bigInput} {...aria} {...register("confirmPassword")} />}
       </FormField>
-      <Button type="submit" className="w-full" loading={pending}>
-        Create account
+      <Button type="submit" className={bigButton} loading={pending}>
+        {pending ? "Creating your account…" : "Create my account"}
       </Button>
     </form>
   );

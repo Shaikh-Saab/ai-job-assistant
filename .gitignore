@@ -10,3 +10,7 @@ next-env.d.ts
 .DS_Store
 npm-debug.log*
 .env*
+
+# Firebase service-account keys (secret)
+*firebase-adminsdk*.json
+service-account*.json

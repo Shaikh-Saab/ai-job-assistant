@@ -18,6 +18,8 @@ model User {
   emailVerified      DateTime?
   image              String?
   passwordHash       String?
+  /// Set once the account is linked to Firebase Authentication.
+  firebaseUid        String?   @unique
   bio                String?   @db.VarChar(280)
   emailNotifications Boolean   @default(true)
   createdAt          DateTime  @default(now())
@@ -256,4 +258,12 @@ model ApplicationPacket {
   updatedAt     DateTime  @updatedAt
 
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+/// Wrong-password counter per email, so repeated guesses pause sign-in for a while.
+model LoginAttempt {
+  email         String    @id
+  failures      Int       @default(0)
+  lastFailureAt DateTime  @default(now())
+  lockedUntil   DateTime?
 }

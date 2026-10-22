@@ -40,6 +40,12 @@ const expect = (cond, msg) => {
 for (const p of ["/login", "/register", "/forgot-password"]) {
   await check(`public page ${p}`, async () => expect((await req(p)).status === 200, "not 200"));
 }
+await check("easy sign-in screens (larger text, Show password, plain labels)", async () => {
+  const login = await (await req("/login")).text();
+  for (const s of ["Larger text", "Email address", ">Show<", "Forgot your password?"]) expect(login.includes(s), `login missing "${s}"`);
+  const register = await (await req("/register")).text();
+  expect(register.includes("At least 8 characters"), "register missing the password checklist");
+});
 for (const p of ["/dashboard", "/jobs", "/projects", "/settings"]) {
   await check(`${p} redirects to login when signed out`, async () => {
     const r = await req(p);

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { pruneLoginAttempts } from "@/lib/auth/lockout";
 import { runDailyDigests } from "@/lib/jobs/digest";
 
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const prunedLoginAttempts = await pruneLoginAttempts();
   const outcome = await runDailyDigests({ budgetMs: 40_000 });
-  return NextResponse.json(outcome, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ...outcome, prunedLoginAttempts }, { headers: { "Cache-Control": "no-store" } });
 }

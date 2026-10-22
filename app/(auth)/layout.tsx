@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { Halftone } from "@/components/brand/halftone";
+import { TextSizeToggle } from "@/components/a11y/text-size-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const FEATURES = [
@@ -15,11 +16,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Form column */}
       <div className="relative flex flex-col">
         <div className="bg-dots bg-dots-fade pointer-events-none absolute inset-0" aria-hidden="true" />
-        <header className="relative flex items-center justify-between px-4 py-5 sm:px-8">
+        <header className="relative flex flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-8">
           <Link href="/" aria-label="Nexus home">
             <Logo />
           </Link>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <TextSizeToggle className="h-11 text-base" />
+            <ThemeToggle />
+          </div>
         </header>
         <main id="main" className="relative flex flex-1 items-center justify-center px-4 pb-16 sm:px-8">
           <div className="w-full max-w-[420px]">{children}</div>

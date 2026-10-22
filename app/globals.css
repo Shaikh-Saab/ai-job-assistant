@@ -77,6 +77,10 @@
   * {
     @apply border-border;
   }
+  /* "Larger text" switch: every size is in rem, so this scales the whole app. */
+  html[data-text="large"] {
+    font-size: 118.75%;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "cv11";

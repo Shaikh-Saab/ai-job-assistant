@@ -1,9 +1,8 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import bcrypt from "bcryptjs";
-
 import { authConfig } from "@/auth.config";
+import { firebaseTokenSignIn, passwordSignIn } from "@/lib/auth/sign-in";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations";
 
@@ -14,18 +13,18 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     ...authConfig.providers,
     Credentials({
       credentials: { email: {}, password: {} },
+      // Wrong-password pause + Firebase or local password check (lib/auth/sign-in.ts).
       async authorize(raw) {
         const parsed = loginSchema.safeParse(raw);
-        if (!parsed.success) return null;
-
-        const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-        if (!user?.passwordHash) return null; // OAuth-only account or unknown email
-
-        const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
-        if (!valid) return null;
-
-        return { id: user.id, name: user.name, email: user.email, image: user.image };
+        return parsed.success ? passwordSignIn(parsed.data.email, parsed.data.password) : null;
       },
+    }),
+    // Google/GitHub through Firebase: the browser pop-up returns an ID token we verify here.
+    Credentials({
+      id: "firebase",
+      name: "Firebase",
+      credentials: { idToken: {} },
+      authorize: (raw) => firebaseTokenSignIn(typeof raw?.idToken === "string" ? raw.idToken : ""),
     }),
   ],
 });

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Doto, Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/app/providers";
+import { textSizeScript } from "@/components/a11y/text-size-toggle";
 import "./globals.css";
 
 // Type system: Bricolage for headings, Geist for UI text, Geist Mono for labels/data,
@@ -26,6 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     // next-themes sets the class before hydration; suppress the expected mismatch.
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: textSizeScript }} />
+      </head>
       <body className={`${sans.variable} ${mono.variable} ${display.variable} ${dot.variable} min-h-dvh font-sans`}>
         <a
           href="#main"

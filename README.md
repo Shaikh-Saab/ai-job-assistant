@@ -28,7 +28,9 @@ Also included:
 - **Dashboard:** live KPIs, an activity chart, status breakdown and upcoming deadlines.
 - **Project tracker:** search, filters, sorting and pagination, with create, edit and delete.
 - **PDF reports:** print-ready A4 reports with a live preview, rendered on the server.
-- **Accounts:** email and password sign-in, GitHub and Google OAuth, password reset, and profile with avatar upload.
+- **Accounts:** email and password sign-in, "Continue with Google" (and GitHub) through **Firebase Authentication** or plain OAuth, password reset by email, and profile with avatar upload.
+- **Safe sign-in:** after **5 wrong passwords**, sign-in for that email pauses for **15 minutes**. The form says plainly how many tries are left and offers a reset link. It's enforced on the server, so scripts can't skip it.
+- **Easy for everyone, including older users:** large text and buttons, a **"Larger text"** switch on every page, plain-language labels and messages, a **Show** button on password boxes, a **Caps Lock is on** warning, and a password checklist that ticks off each rule as you type.
 - **Look and accessibility:** light and dark themes, a mobile-first layout, and WCAG-minded accessibility.
 
 ### What it deliberately doesn't do
@@ -125,15 +127,30 @@ All settings live in `.env`, which is never committed. Only the first two are re
 | `AUTH_SECRET` | Sign-in sessions | `openssl rand -base64 32` |
 | `ANTHROPIC_API_KEY` | Claude fit analysis and drafting | [console.anthropic.com](https://console.anthropic.com) (pay per use, a few cents per job) |
 | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | Adzuna search in 19 countries | [developer.adzuna.com](https://developer.adzuna.com) (free) |
+| `FIREBASE_API_KEY`, `FIREBASE_SERVICE_ACCOUNT` | **Firebase sign-in** (recommended, free): Google button + password-reset emails with no email setup | See [Setting up Firebase](#setting-up-firebase-sign-in-free) below |
+| `FIREBASE_SIGN_IN_PROVIDERS` | Optional: which Firebase buttons to show | `google` (default) or `google,github` |
 | `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` | "Sign in with GitHub" | GitHub → Settings → Developer settings → OAuth Apps |
 | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | "Sign in with Google" | Google Cloud Console → Credentials |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Password-reset emails | **Gmail (free):** turn on 2-Step Verification, create an [App Password](https://myaccount.google.com/apppasswords), then use `smtp.gmail.com`, port `465`, your Gmail address and the 16-letter app password. Brevo's free SMTP works too. |
 | `RESEND_API_KEY` | Password-reset emails (alternative) | [resend.com](https://resend.com); needs a verified domain to email other people |
 | `BLOB_READ_WRITE_TOKEN` | Avatar uploads | A Vercel Blob store |
 
-Without a Claude key, everything except drafting still works, and you can write packets by hand. Without an email setting, "Forgot password" tells users it isn't available instead of failing silently (locally, reset links print to the terminal). The **GitHub** and **Google** sign-in buttons only appear once their keys are set.
+Without a Claude key, everything except drafting still works, and you can write packets by hand. With Firebase set up, Firebase sends the reset emails and you don't need any email setting for that (SMTP is then only used for the daily digest). Without Firebase or an email setting, "Forgot password" tells users it isn't available instead of failing silently (locally, reset links print to the terminal). The **GitHub** and **Google** sign-in buttons only appear once their keys are set.
 
-### Setting up "Sign in with GitHub / Google"
+### Setting up Firebase sign-in (free)
+
+Firebase's free Spark plan covers this app's sign-in, and Firebase sends the password-reset emails itself.
+
+1. Go to [console.firebase.google.com](https://console.firebase.google.com) → **Create a project** (Google Analytics can be off).
+2. **Build → Authentication → Get started.** Under **Sign-in method**, turn on **Email/Password** and **Google**. For GitHub, also turn on **GitHub** and paste in a GitHub OAuth app's ID and secret, using the callback URL Firebase shows you.
+3. **Authentication → Settings → Authorized domains → Add domain:** your site, e.g. `ai-job-assistant-liard.vercel.app`. `localhost` is already there.
+4. **Project settings (gear) → General → Web API Key:** copy it into `FIREBASE_API_KEY`. If you see no key, click **Add app → Web (`</>`)** once and it appears.
+5. **Project settings → Service accounts → Generate new private key.** This downloads a JSON file. Paste the **whole file contents** into `FIREBASE_SERVICE_ACCOUNT`. Treat it like a password and never commit it.
+6. Redeploy. The sign-in pages switch to Firebase on their own.
+
+**Existing accounts keep working.** The first time someone signs in with their old password, the app quietly moves them to Firebase with the same password. A "Continue with Google" sign-in joins an existing account with the same (Google-verified) email. An unverified Firebase account can never take over an existing one.
+
+### Setting up "Sign in with GitHub / Google" without Firebase
 
 - **GitHub:** go to GitHub → Settings → Developer settings → **OAuth Apps → New OAuth App**. Use your site URL as the homepage and `https://YOUR-SITE/api/auth/callback/github` as the callback URL. Copy the Client ID into `AUTH_GITHUB_ID`, generate a client secret, and copy it into `AUTH_GITHUB_SECRET`.
 - **Google:** in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials), go to **Create credentials → OAuth client ID → Web application**. Add `https://YOUR-SITE/api/auth/callback/google` as an authorized redirect URI, then copy the values into `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`. You'll first be asked to set up the OAuth consent screen: choose "External" and add your email as a test user.
@@ -193,13 +210,13 @@ components/               UI (shadcn/ui primitives + feature components)
 ### Tests
 
 ```bash
-npm test                 # 62 unit + integration tests (Vitest)
-npm run test:smoke       # 27 end-to-end checks against http://localhost:3000 (start the app first)
+npm test                 # 78 unit + integration tests (Vitest)
+npm run test:smoke       # 28 end-to-end checks against http://localhost:3000 (start the app first)
 BASE_URL=https://your-site EMAIL=you@x.com PASSWORD=… npm run test:smoke   # against a deployment
 ```
 
 - **Unit tests:** job scoring and location matching, HTML and salary parsing, CSV (including formula-injection protection), Zod validation, PDF report maths, email building and escaping, and the owner-only Claude gate.
-- **Integration tests:** the real server actions against a **separate `nexus_test` database**, which is never your real data. They cover project CRUD and ownership, sign-up, the full password-reset flow (including reused and expired links), adding and tracking jobs, the submit checklist, follow-ups, activity history, search rate-limiting, resume PDF extraction, insights, the daily digest, CSV export, PDF reports and cron protection.
+- **Integration tests:** the real server actions against a **separate `nexus_test` database**, which is never your real data. They cover project CRUD and ownership, sign-up, the full password-reset flow (including reused and expired links), the wrong-password pause (countdown, 15-minute pause, parallel guesses, unknown emails), Firebase sign-in with a fake Firebase (moving old accounts over, Google sign-in, blocking account takeover, stale tokens, reset emails, outages), adding and tracking jobs, the submit checklist, follow-ups, activity history, search rate-limiting, resume PDF extraction, insights, the daily digest, CSV export, PDF reports and cron protection.
 - Create the test database once: `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nexus_test npx prisma migrate deploy`, or set `TEST_DATABASE_URL`.
 - **Claude isn't called in tests:** they check that Claude features are blocked for non-owners, without spending API credit.
 
@@ -211,6 +228,6 @@ The app is ready for Vercel: `vercel.json` sets the region, the build and the da
 
 ## Roadmap
 
-- Rate limiting on sign-in and password reset
+- Rate limiting on password-reset requests
 - Email verification for new accounts
 - Browser end-to-end tests (Playwright) for the main flows

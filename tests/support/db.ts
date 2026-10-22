@@ -12,6 +12,7 @@ export async function makeUser(tag: string) {
 export async function cleanup() {
   await prisma.user.deleteMany({ where: { email: { endsWith: "@nexus.test" } } });
   await prisma.passwordResetToken.deleteMany({ where: { email: { endsWith: "@nexus.test" } } });
+  await prisma.loginAttempt.deleteMany({ where: { email: { endsWith: "@nexus.test" } } });
 }
 
 export { prisma };
