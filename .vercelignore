@@ -1,2 +1,10 @@
 # Render-only config; keep it out of Vercel deployments.
 render.yaml
+
+# Never upload local secrets or build/test artifacts
+.env
+.env.*
+!.env.example
+.next
+tests/
+*.tsbuildinfo
