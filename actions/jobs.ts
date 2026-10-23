@@ -8,7 +8,7 @@ import { currentUser, currentUserId } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateJobProfile } from "@/lib/data/jobs";
 import {
-  AIError, AI_MODEL, AI_UNAVAILABLE, aiAllowedFor, draftApplication, generateInterviewPrep, parseResume,
+  AIError, AI_MODEL, aiAllowedFor, aiBlockedReason, draftApplication, generateInterviewPrep, parseResume,
 } from "@/lib/jobs/ai";
 import { logJobEvent } from "@/lib/jobs/events";
 import { extractPdfText, RESUME_PDF_MAX_BYTES } from "@/lib/jobs/resume";
@@ -90,7 +90,7 @@ export async function suggestProfileFromResume(
 ): Promise<ActionResult<{ headline: string; skills: string[]; roleKeywords: string[] }>> {
   const user = await currentUser();
   if (!user) return UNAUTHORIZED;
-  if (!aiAllowedFor(user.email)) return { ok: false, error: AI_UNAVAILABLE };
+  if (!aiAllowedFor(user.email)) return { ok: false, error: `${aiBlockedReason(user.email)} You can still write it by hand.` };
   const text = String(resumeText ?? "").trim();
   if (text.length < 200) return { ok: false, error: "Paste your full resume first (at least a few paragraphs)." };
   if (text.length > 30_000) return { ok: false, error: "Resume is too long (30,000 characters max)." };
@@ -198,7 +198,7 @@ async function ownedJob(userId: string, id: string) {
 export async function generatePacket(jobId: string): Promise<ActionResult> {
   const user = await currentUser();
   if (!user) return UNAUTHORIZED;
-  if (!aiAllowedFor(user.email)) return { ok: false, error: AI_UNAVAILABLE };
+  if (!aiAllowedFor(user.email)) return { ok: false, error: `${aiBlockedReason(user.email)} You can still write it by hand.` };
   const userId = user.id;
 
   const [job, profile] = await Promise.all([ownedJob(userId, jobId), getOrCreateJobProfile(userId)]);
@@ -318,7 +318,7 @@ export async function markFollowedUp(jobId: string): Promise<ActionResult> {
 export async function prepareInterview(jobId: string): Promise<ActionResult> {
   const user = await currentUser();
   if (!user) return UNAUTHORIZED;
-  if (!aiAllowedFor(user.email)) return { ok: false, error: AI_UNAVAILABLE };
+  if (!aiAllowedFor(user.email)) return { ok: false, error: `${aiBlockedReason(user.email)} You can still write it by hand.` };
   const [job, profile] = await Promise.all([ownedJob(user.id, jobId), getOrCreateJobProfile(user.id)]);
   if (!job) return { ok: false, error: "Job not found" };
   if (profile.resumeText.trim().length < 200) return { ok: false, error: "Add your resume in Job profile first." };

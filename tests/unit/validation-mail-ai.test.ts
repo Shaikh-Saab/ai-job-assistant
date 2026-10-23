@@ -114,6 +114,21 @@ describe("Claude access gate (no API calls)", () => {
     expect(aiAllowedFor(null)).toBe(false);
   });
 
+  it("explains why Claude is off: no key vs. not the owner", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_AUTH_TOKEN;
+    Object.assign(process.env, { AI_OWNER_EMAILS: "owner@example.com" });
+    let { aiBlockedReason } = await import("@/lib/jobs/ai");
+    expect(aiBlockedReason("owner@example.com")).toMatch(/needs to add an Anthropic API key/);
+
+    vi.resetModules();
+    process.env.ANTHROPIC_API_KEY = "sk-test";
+    ({ aiBlockedReason } = await import("@/lib/jobs/ai"));
+    expect(aiBlockedReason("owner@example.com")).toBeNull();
+    expect(aiBlockedReason("stranger@example.com")).toContain("You’re signed in as stranger@example.com");
+  });
+
   it("is closed in production when no owner list is set", async () => {
     vi.stubEnv("NODE_ENV", "production");
     Object.assign(process.env, { ANTHROPIC_API_KEY: "sk-test" });

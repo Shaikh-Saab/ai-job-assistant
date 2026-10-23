@@ -13,7 +13,7 @@ import { InterviewPrep } from "@/components/jobs/interview-prep";
 import type { InterviewPrep as Prep } from "@/lib/jobs/ai";
 import { DotMeter } from "@/components/ui/dot-meter";
 import { getJob, getOrCreateJobProfile } from "@/lib/data/jobs";
-import { aiAllowedFor } from "@/lib/jobs/ai";
+import { aiAllowedFor, aiBlockedReason } from "@/lib/jobs/ai";
 import { JOB_SOURCE_LABELS } from "@/lib/validations";
 
 // Claude drafting can take about a minute.
@@ -35,6 +35,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const p = job.packet;
   const answers = (Array.isArray(p?.answers) ? p!.answers : []) as { question: string; answer: string }[];
   const aiReady = aiAllowedFor(session!.user.email);
+  const aiNote = aiBlockedReason(session!.user.email);
   const afterSubmit = ["SUBMITTED", "INTERVIEW", "OFFER"].includes(job.status);
 
   return (
@@ -69,7 +70,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         <div className="min-w-0 space-y-6">
           {job.status === "SUBMITTED" && <FollowUpControl jobId={job.id} followUpAt={job.followUpAt?.toISOString() ?? null} />}
           {(afterSubmit || p?.interviewPrep) && (
-            <InterviewPrep jobId={job.id} prep={(p?.interviewPrep as Prep | null) ?? null} aiReady={aiReady} />
+            <InterviewPrep jobId={job.id} prep={(p?.interviewPrep as Prep | null) ?? null} aiReady={aiReady} aiNote={aiNote} />
           )}
 
           {/* Claude's fit analysis */}
@@ -135,6 +136,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             submittedAt={job.submittedAt?.toISOString() ?? null}
             notes={job.notes}
             aiReady={aiReady}
+            aiNote={aiNote}
             hasResume={profile.resumeText.trim().length >= 200}
             packet={
               p

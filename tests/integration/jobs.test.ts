@@ -142,7 +142,7 @@ describe("profile, search and Claude gating (no Claude calls)", () => {
     const id = await add(7);
     for (const res of [await generatePacket(id), await prepareInterview(id), await suggestProfileFromResume("x".repeat(300))]) {
       expect(res).toMatchObject({ ok: false });
-      expect((res as { error: string }).error).toContain("site owner only");
+      expect((res as { error: string }).error).toContain("isn’t switched on"); // no API key in tests
     }
   });
 });

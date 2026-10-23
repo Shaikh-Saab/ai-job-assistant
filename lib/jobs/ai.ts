@@ -35,6 +35,13 @@ export function aiAllowedFor(email: string | null | undefined) {
 export const AI_UNAVAILABLE =
   "Claude drafting is available to the site owner only. You can still write your packet by hand.";
 
+/** Why Claude is off for this person, in plain words (null = Claude is available). */
+export function aiBlockedReason(email: string | null | undefined): string | null {
+  if (aiAllowedFor(email)) return null;
+  if (!aiConfigured()) return "Claude isn’t switched on for this site yet: the owner needs to add an Anthropic API key.";
+  return `Claude is limited to the site owner to keep costs down. You’re signed in as ${email ?? "an unknown email"}.`;
+}
+
 export class AIError extends Error {}
 
 /** Shared request path: structured output, refusal check, friendly errors. */

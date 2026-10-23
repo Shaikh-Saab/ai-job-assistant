@@ -20,6 +20,8 @@ type Props = {
   submittedAt: string | null;
   notes: string;
   aiReady: boolean;
+  /** Why Claude is off, shown instead of the Redraft result. */
+  aiNote?: string | null;
   hasResume: boolean;
   packet: (PacketInput & { checks: string[]; checklist: Record<string, boolean>; generatedAt: string | null }) | null;
 };
@@ -49,7 +51,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-export function PacketWorkspace({ jobId, jobUrl, status, submittedAt, notes: initialNotes, aiReady, hasResume, packet }: Props) {
+export function PacketWorkspace({ jobId, jobUrl, status, submittedAt, notes: initialNotes, aiReady, aiNote, hasResume, packet }: Props) {
   const router = useRouter();
   const [generating, startGen] = useTransition();
   const [saving, startSave] = useTransition();
@@ -140,7 +142,7 @@ export function PacketWorkspace({ jobId, jobUrl, status, submittedAt, notes: ini
             onClick={generate}
             loading={generating}
             disabled={!aiReady || !hasResume}
-            title={!aiReady ? "Add ANTHROPIC_API_KEY to .env" : !hasResume ? "Add your resume in Job profile" : undefined}
+            title={!aiReady ? (aiNote ?? undefined) : !hasResume ? "Add your resume in Job profile" : undefined}
           >
             {!generating && (hasDraft ? <RefreshCw aria-hidden="true" /> : <Sparkles aria-hidden="true" />)}
             {generating ? "Claude is writing…" : hasDraft ? "Redraft" : "Draft with Claude"}
@@ -148,7 +150,7 @@ export function PacketWorkspace({ jobId, jobUrl, status, submittedAt, notes: ini
         </header>
 
         <div className="space-y-5 p-5">
-          {!aiReady && <p className="text-sm text-muted-foreground">Claude isn’t configured. You can still write the packet yourself below.</p>}
+          {!aiReady && <p className="text-sm text-muted-foreground">{aiNote ?? "Claude isn’t available right now."} You can still write the packet yourself below.</p>}
           {aiReady && !hasResume && (
             <p className="text-sm text-muted-foreground">
               Add your resume in <Link href="/jobs/profile" className="underline">Job profile</Link> to enable drafting.

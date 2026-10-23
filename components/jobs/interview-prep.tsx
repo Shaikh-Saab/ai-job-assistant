@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import type { InterviewPrep as Prep } from "@/lib/jobs/ai";
 
 /** Claude interview coaching for one job (owner-only when deployed publicly). */
-export function InterviewPrep({ jobId, prep, aiReady }: { jobId: string; prep: Prep | null; aiReady: boolean }) {
+export function InterviewPrep({ jobId, prep, aiReady, aiNote }: { jobId: string; prep: Prep | null; aiReady: boolean; aiNote?: string | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -40,7 +40,7 @@ export function InterviewPrep({ jobId, prep, aiReady }: { jobId: string; prep: P
 
       {!prep ? (
         <p className="p-5 text-sm text-muted-foreground">
-          {aiReady ? "Generate a prep sheet when you get an interview invite." : "Claude interview prep is available to the site owner only."}
+          {aiReady ? "Generate a prep sheet when you get an interview invite." : aiNote ?? "Claude isn’t available right now."}
         </p>
       ) : (
         <div className="space-y-6 p-5 text-sm">
